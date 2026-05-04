@@ -1,0 +1,8 @@
+# FastAPI backend requirements
+fastapi
+uvicorn
+sqlalchemy
+asyncpg
+alembic
+psycopg2-binary
+python-dotenv
