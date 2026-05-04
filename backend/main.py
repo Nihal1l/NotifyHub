@@ -2,8 +2,10 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, HTTPExcept
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from .database import SessionLocal
-from .models import User, Role, Notification, NotificationRead
+from database import SessionLocal
+from models import User, Role, Notification, NotificationRead
+from pydantic import BaseModel
+from sqlalchemy.orm import joinedload
 from typing import List, Dict, Optional
 import asyncio
 
@@ -18,19 +20,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def get_db():
+async def get_db():
     db = SessionLocal()
     try:
         yield db
     finally:
-        asyncio.create_task(db.close())
+        await db.close()
 
 # In-memory store for WebSocket connections
 active_connections: Dict[int, WebSocket] = {}
 
 @app.get("/users")
 async def get_users(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).options())
+    result = await db.execute(select(User).options(joinedload(User.role)))
     users = result.scalars().all()
     return [{"id": u.id, "username": u.username, "role": u.role.name} for u in users]
 
@@ -42,7 +44,7 @@ async def get_roles(db: AsyncSession = Depends(get_db)):
 
 @app.get("/notifications/{user_id}")
 async def get_notifications(user_id: int, db: AsyncSession = Depends(get_db)):
-    user = await db.get(User, user_id)
+    user = await db.get(User, user_id, options=[joinedload(User.role)])
     if not user:
         raise HTTPException(404, "User not found")
     # Get notifications for this user (by role or all)
@@ -74,7 +76,7 @@ async def create_notification(data: dict, db: AsyncSession = Depends(get_db)):
     await db.refresh(notif)
     # Send to all relevant users via WebSocket
     for user_id, ws in active_connections.items():
-        user = await db.get(User, user_id)
+        user = await db.get(User, user_id, options=[joinedload(User.role)])
         if user and (audience == "all" or user.role.name in audience.split(",")):
             await ws.send_json({
                 "id": notif.id,
@@ -95,15 +97,19 @@ async def websocket_endpoint(websocket: WebSocket, user_id: int):
     except WebSocketDisconnect:
         del active_connections[user_id]
 
+class MarkReadRequest(BaseModel):
+    user_id: int
+    is_read: bool
+
 @app.post("/notifications/{notif_id}/read")
-async def mark_read(notif_id: int, user_id: int, is_read: bool, db: AsyncSession = Depends(get_db)):
+async def mark_read(notif_id: int, req: MarkReadRequest, db: AsyncSession = Depends(get_db)):
     # Mark notification as read/unread for user
-    result = await db.execute(select(NotificationRead).where(NotificationRead.user_id == user_id, NotificationRead.notification_id == notif_id))
+    result = await db.execute(select(NotificationRead).where(NotificationRead.user_id == req.user_id, NotificationRead.notification_id == notif_id))
     record = result.scalars().first()
     if record:
-        record.is_read = is_read
+        record.is_read = req.is_read
     else:
-        record = NotificationRead(user_id=user_id, notification_id=notif_id, is_read=is_read)
+        record = NotificationRead(user_id=req.user_id, notification_id=notif_id, is_read=req.is_read)
         db.add(record)
     await db.commit()
     return {"status": "updated"}

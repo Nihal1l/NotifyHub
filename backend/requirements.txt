@@ -6,3 +6,4 @@ asyncpg
 alembic
 psycopg2-binary
 python-dotenv
+websockets

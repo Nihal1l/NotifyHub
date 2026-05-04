@@ -1,6 +1,6 @@
 import asyncio
-from .database import engine, Base, SessionLocal
-from .models import Role, User
+from database import engine, Base, SessionLocal
+from models import Role, User
 
 ROLES = ["Admin", "Manager", "Editor", "Viewer", "Support"]
 USERS = [
