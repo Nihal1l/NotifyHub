@@ -1,59 +1,83 @@
-# NotifyHub - Role-Based Notification System
+# NotifyHub 🔔
 
-A real-time, role-based notification system built with FastAPI (Backend), React (Frontend), and PostgreSQL (Database).
+NotifyHub is a real-time, role-based notification system designed to deliver targeted messages to users based on their organizational roles. Built with a modern full-stack architecture, it demonstrates real-time communication using WebSockets and a robust asynchronous backend.
 
-## Features
-- **Role-Based Notifications**: Send notifications to all users or specific roles (Admin, Manager, Editor, Viewer, Support).
-- **Real-Time Updates**: Notifications are delivered instantly via WebSockets.
-- **Admin Panel**: Dedicated panel for admins to create and dispatch notifications.
-- **Unread Badges**: Real-time unread count indicators.
-- **Mark Read/Unread**: Users can manage their notification status.
-- **Search & Filter**: Quickly find notifications by content.
+## 🚀 Features
+
+- **Role-Based Targeting**: Send notifications to specific user groups (Admin, Manager, Editor, etc.) or "All Users".
+- **Real-Time Delivery**: Instant message broadcasting using WebSockets.
+- **Unread Tracking**: Persistent unread/read status tracking per user.
+- **Admin Dashboard**: A centralized interface for creating and managing notifications.
+- **Modern UI**: A clean, responsive interface built with Material UI.
 
 ---
 
-## Local Setup Instructions
+## 🛠️ Tech Stack
 
-### 1. Database Setup (PostgreSQL)
-1. Ensure PostgreSQL is installed and running on your machine.
-2. Create a database named `notifyhub`:
+### Frontend
+- **Framework**: React 18
+- **UI Library**: Material UI (MUI)
+- **State/API**: Axios
+- **Real-time**: Native WebSocket API
+
+### Backend
+- **Framework**: FastAPI (Python)
+- **ORM**: SQLAlchemy (Asynchronous)
+- **Database**: PostgreSQL
+- **Driver**: `asyncpg` (Async PostgreSQL driver)
+- **Web Server**: Uvicorn
+
+---
+
+## ⚙️ Local Setup Instructions
+
+### 1. Prerequisites
+- **Python 3.9+**
+- **Node.js 16+**
+- **PostgreSQL** (running locally)
+
+### 2. Database Setup
+1. Ensure PostgreSQL is running.
+2. Create the database:
    ```bash
+   # Using psql (Password may be required)
    psql -U postgres -c "CREATE DATABASE notifyhub"
    ```
-3. Create a `.env` file in the `backend/` directory and add your database URL:
-   ```env
-   DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@localhost:5432/notifyhub
-   ```
+   *(Alternatively, run `python backend/create_db.py` if your postgres credentials match `postgres:postgres`)*
 
-### 2. Backend Setup (FastAPI)
-1. Navigate to the backend directory:
+### 3. Backend Configuration
+1. Navigate to the `backend` folder:
    ```bash
    cd backend
    ```
 2. Create and activate a virtual environment:
    ```bash
    python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
+   # Windows:
+   .\venv\Scripts\activate
+   # macOS/Linux:
    source venv/bin/activate
    ```
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. Seed the database with initial users and roles:
+4. Create a `.env` file:
+   ```env
+   DATABASE_URL=postgresql+asyncpg://postgres:YOUR_PASSWORD@localhost:5432/notifyhub
+   ```
+5. **Initialize and Seed Database**:
    ```bash
    python seed.py
    ```
-5. Start the FastAPI server:
+6. Start the server:
    ```bash
    uvicorn main:app --reload
    ```
-   The backend will be available at `http://localhost:8000`.
+   *Backend runs at: `http://localhost:8000`*
 
-### 3. Frontend Setup (React)
-1. Navigate to the frontend directory:
+### 4. Frontend Configuration
+1. Navigate to the `frontend` folder:
    ```bash
    cd frontend
    ```
@@ -61,25 +85,33 @@ A real-time, role-based notification system built with FastAPI (Backend), React 
    ```bash
    npm install
    ```
-3. Start the development server:
+3. Start the application:
    ```bash
    npm start
    ```
-   The frontend will be available at `http://localhost:3000`.
+   *Frontend runs at: `http://localhost:3000`*
 
 ---
 
-## Default Users (Pre-seeded)
-- **alice**: Admin
-- **bob**: Manager
-- **carol**: Editor
-- **dave**: Viewer
-- **eve**: Support
-- **frank**: Viewer
+## 🏗️ Design Decisions & Assumptions
+
+1. **In-Memory WebSocket Management**: WebSocket connections are stored in an in-memory dictionary. This is optimized for low latency in a single-server deployment. For horizontal scaling, a pub/sub system like Redis would be required.
+2. **Asynchronous Architecture**: The entire backend (FastAPI + SQLAlchemy + asyncpg) is built using `async/await` to handle high-concurrency WebSocket connections efficiently.
+3. **Role-Based Logic**: Notifications are filtered twice—once when fetching history from the DB and once during live broadcast—ensuring users only see messages intended for their role.
+4. **Read Status Persistence**: A dedicated `notification_reads` table tracks the status for every user-notification pair, allowing for granular "Mark as Read" functionality.
+5. **Pre-defined Roles**: The system assumes five core roles: `Admin`, `Manager`, `Editor`, `Viewer`, and `Support`.
+6. **Simplified Auth**: For demonstration purposes, the system uses a simple user selection/ID mechanism rather than a full OAuth2/JWT flow.
 
 ---
 
-## Technologies Used
-- **Backend**: FastAPI, SQLAlchemy (Async), PostgreSQL
-- **Frontend**: React, Material UI, Axios
-- **Real-time**: WebSockets
+## 👥 Test Users (Pre-seeded)
+
+| Username | Role |
+| :--- | :--- |
+| `alice` | Admin |
+| `bob` | Manager |
+| `carol` | Editor |
+| `dave` | Viewer |
+| `eve` | Support |
+| `frank` | Viewer |
+
